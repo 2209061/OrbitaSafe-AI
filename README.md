@@ -21,6 +21,24 @@
 - 🛡️ Avoidance recommendations
 - 📊 Interactive dashboard
 
+## 🚀 How It Works
+1. Upload satellite and debris data
+2. Calculate nearest object distance
+3. Predict collision risk using AI model
+4. Generate avoidance recommendations
+5. Visualize results in dashboard
+
+## 📊 Project Structure
+
+OrbitaSafe-AI/
+├── app/
+├── backend/
+├── data/
+├── models/
+├── visualizations/
+└── README.md
+
+
 ## Technnologies
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white">
