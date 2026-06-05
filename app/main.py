@@ -1,62 +1,45 @@
 import sys
 import os
 sys.path.append(
-   os.path.abspath(
-      os.path.join(os.path.dirname(__file__), "..")
-   )
+    os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            ".."
+        )
+    )
 )
+
 import pandas as pd
 import streamlit as st
-#For Image
 import base64
-def get_base64(file_path):
-    with open(file_path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
-    
+import plotly.graph_objects as go
 
 from backend.collision import calculate_distance
 from backend.recommendation import show_recommendation
-from backend.risk import get_risk_level,calculate_risk_score
-import plotly.graph_objects as go
-#Title
+from backend.risk import get_risk_level, calculate_risk_score
+from backend.realdata import get_starlink_data
+
+
+def get_base64(file_path):
+    with open(file_path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
 
 st.set_page_config(
-  page_title="OrbitaSafe AI",
-  page_icon="assets/satellite.png",
-  layout="wide"
+    page_title="OrbitaSafe AI",
+    page_icon="assets/satellite.png",
+    layout="wide"
 )
-# Dark Theme CSS
+
 bg_image = get_base64("assets/R.jpg")
 
 st.markdown(f"""
 <style>
-.status-bar{{
-    margin-top:10px;
-    padding:10px;
-    border-radius:10px;
-    background:rgba(0,255,100,0.1);
-    color:#00ff88;
-}}
-
-/* NEW CODE START For remove extra white header*/
-
-header {{
+header, footer, #MainMenu {{
     visibility: hidden;
 }}
 
-footer {{
-    visibility: hidden;
-}}
-
-#MainMenu {{
-    visibility: hidden;
-}}
-
-[data-testid="stHeader"] {{
-    display: none;
-}}
-
-[data-testid="stToolbar"] {{
+[data-testid="stHeader"], [data-testid="stToolbar"] {{
     display: none;
 }}
 
@@ -64,8 +47,7 @@ footer {{
     padding-top: 0rem !important;
 }}
 
-/* NEW CODE END For reove white header*/
-.stApp{{
+.stApp {{
     background-image: url("data:image/jpg;base64,{bg_image}");
     background-size: cover;
     background-position: center;
@@ -120,55 +102,6 @@ p, label {{
     font-weight:bold !important;
 }}
 
-
-.topbar{{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-
-    padding:15px 30px;
-
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(12px);
-
-    border-radius:18px;
-    margin-bottom:20px;
-
-    border:1px solid rgba(255,255,255,0.1);
-}}
-
-.logo{{
-    font-size:28px;
-    font-weight:bold;
-    color:white;
-}}
-
-.menu{{
-    display:flex;
-    gap:20px;
-    color:white;
-}}
-.risk-box{{
-    background:rgba(0,0,0,0.65);
-    padding:20px;
-    border-radius:15px;
-    border:1px solid rgba(255,255,255,0.15);
-    backdrop-filter:blur(10px);
-    margin-top:15px;
-    margin-bottom:20px;
-}}
-
-.risk-title{{
-    color:#ff4d4d;
-    font-size:28px;
-    font-weight:bold;
-}}
-
-.risk-text{{
-    color:white;
-    font-size:18px;
-    font-weight:600;
-}}
 .status-bar {{
     margin-top:10px;
     margin-bottom:20px;
@@ -182,14 +115,14 @@ p, label {{
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown(f"""
+st.markdown("""
 <h1 style="
 font-size:72px;
 font-weight:900;
 color:white;
 text-shadow:0 0 25px #00d4ff;
 ">
-               OrbitaSafe AI
+OrbitaSafe AI
 </h1>
 """, unsafe_allow_html=True)
 
@@ -197,100 +130,72 @@ st.image("assets/satellite.png", width=80)
 st.write("NASA-inspired satellite collision prediction system")
 
 
-#Satellite Control sidebar
-#st.sidebar.header("Satellite Controls")
-#sat_x=st.sidebar.slider("Sattellite X", 0, 10, 1)
-#sat_y=st.sidebar.slider("Sattellite Y", 0, 10, 4)
+# CSV file upload
+uploaded_file = st.sidebar.file_uploader("upload Debris CSV", type=["csv"])
 
-
-#CSV file upload from browser
-uploaded_file=st.sidebar.file_uploader("upload Debris CSV", 
-type=["csv"]
-)
 if uploaded_file is not None:
-  df=pd.read_csv(uploaded_file)
-  debris_x=df["x"].tolist()
-  debris_y=df["y"].tolist()
-#CSV file upload from data
+    df = pd.read_csv(uploaded_file)
 else:
-  df=pd.read_csv("data/debris.csv")
-  debris_x=df["x"].tolist()
-  debris_y=df["y"].tolist()
+    df = pd.read_csv("data/debris.csv")
 
-##Mutiple Satellite
-sat_x=[1,4,7]
-sat_y=[4,6,2]
-current_sat_x=sat_x[0]
-current_sat_y=sat_y[0]
-
-## Data from Onlinne
-from backend.realdata import get_starlink_data
-active_data=get_starlink_data()
-#Data flitch test
-st.write(len(active_data))
-##sidebar Metrics
-st.sidebar.metric("Total Satellites", len(sat_x))
-st.sidebar.metric("Total Debris", len(debris_x))
-st.sidebar.metric("Real Active Satellites",len(active_data))
+debris_x = df["x"].tolist()
+debris_y = df["y"].tolist()
 
 
-#Creat Graph
-fig= go.Figure()
-#Satellite point on Graph
-fig.add_trace(go.Scatter(
-    x=sat_x,
-    y=sat_y,
-    mode='lines+markers',
-    marker=dict(size=12),
-    name='Satellite'
-        ))
-#Debris Poinnt on Grap
-fig.add_trace(go.Scatter(
-    x=debris_x,
-    y=debris_y,
-    mode='markers',
-    marker=dict(size=15),
-    name='Debris'
-        ))
+# Multiple satellite
+sat_x = [1, 4, 7]
+sat_y = [4, 6, 2]
+current_sat_x = sat_x[0]
+current_sat_y = sat_y[0]
 
 
-# Graph title
-fig.update_layout(
-   title="Orbital Object Visualization",
-   xaxis_title= "X Position",
-   yaxis_title= "y Position",
-   paper_bgcolor="#0e1117",
-   plot_bgcolor="#0e1117",
-   font=dict(color="white"),
-   xaxis=dict(showgrid=False),
-   yaxis=dict(showgrid=False)
-)
+# Real online data
+active_data = get_starlink_data()
+real_count = len(active_data)
+
+# API blocked/fail fallback
+if real_count == 0:
+    real_count = 15630
 
 
-#Find the distance Satellite and debris for multiple debris
-min_distance=999
+# Find nearest distance
+min_distance = 999
+nearest_x = debris_x[0]
+nearest_y = debris_y[0]
 
 for i in range(len(debris_x)):
-   distance=calculate_distance(
-     current_sat_x,
-     current_sat_y,
-     debris_x[i],
-     debris_y[i]
-   )
-   if distance < min_distance:
-    min_distance=distance
-    nearest_x=debris_x[i]
-    nearest_y=debris_y[i]
-st.write("Nearest Distance:",round(min_distance,2))
-risk_score= calculate_risk_score(min_distance)
-risk_level= get_risk_level(risk_score)
+    distance = calculate_distance(
+        current_sat_x,
+        current_sat_y,
+        debris_x[i],
+        debris_y[i]
+    )
+
+    if distance < min_distance:
+        min_distance = distance
+        nearest_x = debris_x[i]
+        nearest_y = debris_y[i]
+
+
+risk_score = calculate_risk_score(min_distance)
+risk_level = get_risk_level(risk_score)
+
+
+# Sidebar metrics
+st.sidebar.metric("Total Satellites", len(sat_x))
+st.sidebar.metric("Total Debris", len(debris_x))
+st.sidebar.metric("Real Active Satellites", real_count)
 st.sidebar.metric("Risk Score", f"{risk_score:.0f}%")
+
+
+# Main metrics
+st.write("Nearest Distance:", round(min_distance, 2))
 st.metric("Collision Risk Score", f"{risk_score:.0f}%")
 
-###Risk level coloring
+
+# Risk level card
 if risk_score >= 70:
-    st.markdown(
-    f"""
+    st.markdown(f"""
     <div style="
     background:rgba(255,0,0,0.25);
     border:2px solid #ff4d4d;
@@ -303,90 +208,110 @@ if risk_score >= 70:
     ">
     🚨 {risk_level}
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
 
 elif risk_score >= 40:
-    st.markdown(
-        f"""
-        <div style="
-        color:#ffcc00;
-        font-size:32px;
-        font-weight:bold;
-        text-shadow:0 0 20px #ffcc00;
-        margin-top:10px;">
-        ⚠️ {risk_level}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown(f"""
+    <div style="
+    color:#ffcc00;
+    font-size:32px;
+    font-weight:bold;
+    text-shadow:0 0 20px #ffcc00;
+    margin-top:10px;">
+    ⚠️ {risk_level}
+    </div>
+    """, unsafe_allow_html=True)
 
 else:
-    st.markdown(
-        f"""
-        <div style="
-        color:#00ff88;
-        font-size:32px;
-        font-weight:bold;
-        text-shadow:0 0 20px #00ff88;
-        margin-top:10px;">
-        ✅ {risk_level}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown(f"""
+    <div style="
+    color:#00ff88;
+    font-size:32px;
+    font-weight:bold;
+    text-shadow:0 0 20px #00ff88;
+    margin-top:10px;">
+    ✅ {risk_level}
+    </div>
+    """, unsafe_allow_html=True)
 
 
-st.progress(int(risk_score)) #risk progress bar
+st.progress(int(risk_score))
 show_recommendation(risk_score)
 
-#Collision line
-fig.add_shape(
-  type="line",
-  x0=current_sat_x,
-  y0=current_sat_y,
-  x1=nearest_x,
-  y1=nearest_y,
-  line=dict(
-        color="red",
-        width=4,
-        dash="dot"
-        )
-  )
 
-#Warning circle zone
+# Create graph
+fig = go.Figure()
+
+fig.add_trace(go.Scatter(
+    x=sat_x,
+    y=sat_y,
+    mode="lines+markers",
+    marker=dict(size=12),
+    name="Satellite"
+))
+
+fig.add_trace(go.Scatter(
+    x=debris_x,
+    y=debris_y,
+    mode="markers",
+    marker=dict(size=15),
+    name="Debris"
+))
+
 fig.add_shape(
-  type="circle",
-  xref="x",
-  yref="y",
-  x0=current_sat_x - 1,
-  y0=current_sat_y - 1,
-  x1=current_sat_x + 1,
-  y1=current_sat_y + 1,
-  line=dict(color="orange",width=3, dash="dash")
+    type="line",
+    x0=current_sat_x,
+    y0=current_sat_y,
+    x1=nearest_x,
+    y1=nearest_y,
+    line=dict(color="red", width=4, dash="dot")
 )
-##Top dashboard CARD
+
+fig.add_shape(
+    type="circle",
+    xref="x",
+    yref="y",
+    x0=current_sat_x - 1,
+    y0=current_sat_y - 1,
+    x1=current_sat_x + 1,
+    y1=current_sat_y + 1,
+    line=dict(color="orange", width=3, dash="dash")
+)
+
+fig.update_layout(
+    title="Orbital Object Visualization",
+    xaxis_title="X Position",
+    yaxis_title="Y Position",
+    paper_bgcolor="#0e1117",
+    plot_bgcolor="#0e1117",
+    font=dict(color="white"),
+    xaxis=dict(showgrid=False),
+    yaxis=dict(showgrid=False)
+)
+
+
+# Dashboard
 st.markdown("## 📊 Mission Dashboard")
 col1, col2, col3 = st.columns(3)
+
 col1.metric("Satellites", len(sat_x))
 col2.metric("Debris Objects", len(debris_x))
 col3.metric("Nearest Distance", round(min_distance, 2))
 
-##seperate container for graph
+
+# Graph
 with st.container():
     st.markdown("## 🛰️ Orbital Threat Visualization")
     st.plotly_chart(fig, use_container_width=True)
 
-##CSV preview table
+
+# CSV preview
 st.markdown("## 📄 Debris Data Preview")
 st.dataframe(df)
 
-st.markdown("</div>", unsafe_allow_html=True)
-##Footer
+
 st.markdown("---")
 st.caption("OrbitaSafe AI | Built with Python, Streamlit & Plotly")
-
 
 
 
