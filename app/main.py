@@ -223,9 +223,13 @@ sat_y=[4,6,2]
 current_sat_x=sat_x[0]
 current_sat_y=sat_y[0]
 
+## Data from Onlinne
+from backend.realdata import get_starlink_data
+starlink_data=get_starlink_data()
 ##sidebar Metrics
 st.sidebar.metric("Total Satellites", len(sat_x))
 st.sidebar.metric("Total Debris", len(debris_x))
+st.sidebar.metric("Real Starlink Satellites",len(starlink_data))
 
 
 #Creat Graph
