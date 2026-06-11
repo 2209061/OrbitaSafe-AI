@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 from backend.collision import calculate_distance
 from backend.recommendation import show_recommendation
 from backend.risk import get_risk_level, calculate_risk_score
-from backend.realdata import get_starlink_data
+from backend.realdata import get_satellite_data
 
 
 def get_base64(file_path):
@@ -141,22 +141,53 @@ else:
 debris_x = df["x"].tolist()
 debris_y = df["y"].tolist()
 
+#Real data come from cache_File
+import json
+import os
+
+CACHE_FILE = "data/active_satellites.json"
+
+if os.path.exists(CACHE_FILE):
+    with open(CACHE_FILE, "r") as f:
+        active_data = json.load(f)
+else:
+    active_data = []
+
+real_count = len(active_data)
 
 # Multiple satellite
-sat_x = [1, 4, 7]
-sat_y = [4, 6, 2]
+# Satellite data source selector
+mode = st.sidebar.radio(
+    "Satellite Data Source",
+    ["Demo Satellites", "Real Satellites"]
+)
+
+if mode == "Demo Satellites":
+    sat_x = [1, 4, 7]
+    sat_y = [4, 6, 2]
+    sat_names = ["Demo SAT-1", "Demo SAT-2", "Demo SAT-3"]
+
+else:
+    sat_x = []
+    sat_y = []
+    sat_names = []
+
+    for sat in active_data:
+        sat_x.append(sat.get("INCLINATION", 0))
+        sat_y.append(sat.get("MEAN_MOTION", 0))
+        sat_names.append(sat.get("OBJECT_NAME", "Unknown"))
 current_sat_x = sat_x[0]
 current_sat_y = sat_y[0]
 
 
 # Real online data
-active_data = get_starlink_data()
-real_count = len(active_data)
+#active_data = get_satellite_data()
+#real_count = len(active_data)
 
 # API blocked/fail fallback
-if real_count == 0:
-    real_count = 15630
-
+##if real_count == 0:
+    ##real_count = 15630
+##take data from active_satelite.json
 
 # Find nearest distance
 min_distance = 999
@@ -303,6 +334,60 @@ col3.metric("Nearest Distance", round(min_distance, 2))
 with st.container():
     st.markdown("## 🛰️ Orbital Threat Visualization")
     st.plotly_chart(fig, use_container_width=True)
+
+# 3D Real Satellite Data
+
+real_sat_x = []
+real_sat_y = []
+real_sat_z = []
+
+for i, sat in enumerate(active_data):
+    real_sat_x.append(i)
+
+    real_sat_y.append(
+        sat.get("INCLINATION", 0)
+    )
+
+    real_sat_z.append(
+        sat.get("MEAN_MOTION", 0)
+    )
+
+fig3d = go.Figure()
+
+fig3d.add_trace(go.Scatter3d(
+    x=real_sat_x,
+    y=real_sat_y,
+    z=real_sat_z,
+    mode="markers",
+    text=sat_names,
+    hovertemplate=
+        "Satellite:%{text}<br>"+
+        "Inclination:%{y}<br>"+
+        "Mean Motion:%{z}<br>"+
+        "<extra></extra>",
+    marker=dict(
+         size=5,
+         color=real_sat_y,
+         colorscale="Turbo",
+         showscale=True
+    )
+))
+
+fig3d.update_layout(
+        title="🌍 Live Satellite Constellation",
+    scene=dict(
+        xaxis_title="Satellite ID",
+        yaxis_title="Inclination",
+        zaxis_title="Mean Motion"
+    ),
+    paper_bgcolor="black",
+    font=dict(color="white"),
+    height=700
+
+)
+
+st.plotly_chart(fig3d,
+                use_container_width=True)
 
 
 # CSV preview

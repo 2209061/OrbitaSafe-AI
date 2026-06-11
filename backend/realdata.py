@@ -1,16 +1,22 @@
 import requests
 
-
-def get_active_satellite_data():
-    url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json"
+def get_satellite_data():
+    url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=json"
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=15)
 
         if response.status_code == 200:
-            return response.json()
+            text = response.text.strip()
 
-        print("API Blocked:", response.status_code, response.text[:200])
+            if text.startswith("["):
+                return response.json()
+
+            print("API returned text, not JSON:")
+            print(text[:200])
+            return []
+
+        print("API Error:", response.status_code)
         return []
 
     except Exception as e:
